@@ -110,7 +110,8 @@ COOKIE_DOMAIN=
 APP_TIMEZONE=Asia/Kolkata
 ACCESS_TOKEN_EXPIRATION=15
 REFRESH_TOKEN_EXPIRATION=30
-SWAGGER_ENABLED=false   # recommended in production
+BOOTSTRAP_ADMIN_PASSWORD   # optional; defaults to ChangeMe123! when users table is empty
+BOOTSTRAP_ADMIN_EMAIL      # optional; default admin@example.com
 ```
 
 ### Neon PostgreSQL
@@ -136,7 +137,7 @@ Fresh database bootstrap (no manual SQL):
 1. Create empty Neon database
 2. Configure `DATABASE_URL` + `JWT_SECRET` + `FRONTEND_URL` on Render
 3. Deploy backend → Flyway creates schema, indexes, singleton project settings row
-4. Create the first admin user through your operational process (seed profile is dev-only)
+4. On first startup with an empty `users` table, the backend auto-creates an admin (`admin@example.com` by default). Set `BOOTSTRAP_ADMIN_PASSWORD` on Render for a custom password.
 
 ## API overview
 

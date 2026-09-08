@@ -21,6 +21,10 @@ management:
 app:
   timezone: ${APP_TIMEZONE:Asia/Kolkata}
   frontend-url: ${FRONTEND_URL:http://localhost:4200}
+  bootstrap:
+    admin-email: ${BOOTSTRAP_ADMIN_EMAIL:admin@example.com}
+    admin-password: ${BOOTSTRAP_ADMIN_PASSWORD:}
+    admin-name: ${BOOTSTRAP_ADMIN_NAME:Admin}
   jwt-secret: ${JWT_SECRET:change-this-development-secret-to-a-long-random-value-at-least-32-bytes}
   access-token-minutes: ${ACCESS_TOKEN_EXPIRATION:15}
   refresh-token-days: ${REFRESH_TOKEN_EXPIRATION:30}
