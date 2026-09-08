@@ -1,6 +1,7 @@
 package com.example.acres;
 
 import com.example.acres.security.AuthCsrfFilter;
+import com.example.acres.security.CsrfTokenService;
 import jakarta.servlet.FilterChain;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,12 +13,14 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 
 class AuthCsrfFilterTest {
+    private CsrfTokenService csrfTokenService;
     private AuthCsrfFilter filter;
     private MockHttpServletResponse response;
 
     @BeforeEach
     void setup() {
-        filter = new AuthCsrfFilter();
+        csrfTokenService = new CsrfTokenService();
+        filter = new AuthCsrfFilter(csrfTokenService);
         response = new MockHttpServletResponse();
     }
 
@@ -31,9 +34,8 @@ class AuthCsrfFilterTest {
     }
 
     @Test
-    void rejectsLoginWithoutCsrfHeader() throws Exception {
+    void rejectsLoginWithoutCsrfHeaderOrCookie() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/auth/login");
-        request.setCookies(new jakarta.servlet.http.Cookie("XSRF-TOKEN", "abc123"));
         FilterChain chain = mock(FilterChain.class);
         filter.doFilter(request, response, chain);
         assertEquals(403, response.getStatus());
@@ -50,7 +52,7 @@ class AuthCsrfFilterTest {
     }
 
     @Test
-    void allowsLoginWhenHeaderMatchesCookie_crossOriginDoubleSubmit() throws Exception {
+    void allowsLoginWhenHeaderMatchesCookie() throws Exception {
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/auth/login");
         String token = "cross-origin-csrf-token-value";
         request.setCookies(new jakarta.servlet.http.Cookie("XSRF-TOKEN", token));
@@ -62,10 +64,20 @@ class AuthCsrfFilterTest {
     }
 
     @Test
-    void allowsRefreshWhenHeaderMatchesCookie() throws Exception {
+    void allowsLoginWithHeaderOnly_crossOriginWithoutCookie() throws Exception {
+        String token = csrfTokenService.issue();
+        MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/auth/login");
+        request.addHeader("X-XSRF-TOKEN", token);
+        FilterChain chain = mock(FilterChain.class);
+        filter.doFilter(request, response, chain);
+        verify(chain).doFilter(request, response);
+        assertEquals(200, response.getStatus());
+    }
+
+    @Test
+    void allowsRefreshWithHeaderOnly() throws Exception {
+        String token = csrfTokenService.issue();
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/auth/refresh");
-        String token = "refresh-csrf-token";
-        request.setCookies(new jakarta.servlet.http.Cookie("XSRF-TOKEN", token));
         request.addHeader("X-XSRF-TOKEN", token);
         FilterChain chain = mock(FilterChain.class);
         filter.doFilter(request, response, chain);
@@ -73,10 +85,9 @@ class AuthCsrfFilterTest {
     }
 
     @Test
-    void allowsLogoutWhenHeaderMatchesCookie() throws Exception {
+    void allowsLogoutWithHeaderOnly() throws Exception {
+        String token = csrfTokenService.issue();
         MockHttpServletRequest request = new MockHttpServletRequest("POST", "/api/auth/logout");
-        String token = "logout-csrf-token";
-        request.setCookies(new jakarta.servlet.http.Cookie("XSRF-TOKEN", token));
         request.addHeader("X-XSRF-TOKEN", token);
         FilterChain chain = mock(FilterChain.class);
         filter.doFilter(request, response, chain);

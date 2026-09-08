@@ -29,6 +29,22 @@ export const authInterceptor: HttpInterceptorFn = (req, next): Observable<HttpEv
 
   return next(r).pipe(
     catchError((err: HttpErrorResponse) => {
+      const csrfFailed = err.status === 403
+        && (err.error?.error === 'CSRF' || err.error?.message === 'CSRF validation failed');
+      if (csrfFailed && isAuthMutation && !req.headers.has('X-CSRF-RETRY')) {
+        return from(auth.fetchCsrf()).pipe(
+          switchMap(() => {
+            const retry = r.clone({
+              setHeaders: {
+                'X-XSRF-TOKEN': auth.csrfToken!,
+                'X-Request-ID': r.headers.get('X-Request-ID')!,
+                'X-CSRF-RETRY': '1'
+              }
+            });
+            return next(retry);
+          })
+        );
+      }
       if (err.status === 403) {
         return throwError(() => ({ ...err, friendlyMessage: err.error?.message || 'You do not have permission to perform this action.' }));
       }

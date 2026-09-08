@@ -3,6 +3,7 @@ package com.example.acres.controller;
 import com.example.acres.dto.AuthDtos.AuthResponse;
 import com.example.acres.dto.AuthDtos.CsrfResponse;
 import com.example.acres.security.AuthCookieService;
+import com.example.acres.security.CsrfTokenService;
 import com.example.acres.service.AuthService;
 import com.example.acres.dto.AuthDtos.LoginRequest;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,25 +17,22 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.security.SecureRandom;
-import java.util.Base64;
-
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
     private final AuthService auth;
     private final AuthCookieService cookies;
+    private final CsrfTokenService csrfTokens;
 
-    public AuthController(AuthService auth, AuthCookieService cookies) {
+    public AuthController(AuthService auth, AuthCookieService cookies, CsrfTokenService csrfTokens) {
         this.auth = auth;
         this.cookies = cookies;
+        this.csrfTokens = csrfTokens;
     }
 
     @GetMapping("/csrf")
     public ResponseEntity<CsrfResponse> csrf(HttpServletResponse res) {
-        byte[] b = new byte[24];
-        new SecureRandom().nextBytes(b);
-        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(b);
+        String token = csrfTokens.issue();
         res.addHeader(HttpHeaders.SET_COOKIE, cookies.buildCsrfCookie(token));
         return ResponseEntity.ok(new CsrfResponse(token));
     }

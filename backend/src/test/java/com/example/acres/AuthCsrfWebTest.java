@@ -5,6 +5,7 @@ import com.example.acres.dto.AuthDtos.AuthResponse;
 import com.example.acres.dto.AuthDtos.UserResponse;
 import com.example.acres.security.AuthCookieService;
 import com.example.acres.security.AuthCsrfFilter;
+import com.example.acres.security.CsrfTokenService;
 import com.example.acres.service.AuthService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -35,18 +36,20 @@ class AuthCsrfWebTest {
     AuthService authService;
 
     private MockMvc mvc;
+    private CsrfTokenService csrfTokenService;
 
     @BeforeEach
     void setup() {
+        csrfTokenService = new CsrfTokenService();
         AuthCookieService cookies = new AuthCookieService();
         ReflectionTestUtils.setField(cookies, "secure", false);
         ReflectionTestUtils.setField(cookies, "sameSite", "Lax");
         ReflectionTestUtils.setField(cookies, "domain", "");
         ReflectionTestUtils.setField(cookies, "refreshTokenDays", 30L);
 
-        AuthController controller = new AuthController(authService, cookies);
+        AuthController controller = new AuthController(authService, cookies, csrfTokenService);
         mvc = MockMvcBuilders.standaloneSetup(controller)
-                .addFilter(new AuthCsrfFilter())
+                .addFilter(new AuthCsrfFilter(csrfTokenService))
                 .build();
     }
 
@@ -60,16 +63,33 @@ class AuthCsrfWebTest {
 
     @Test
     void loginRejectsMissingCsrfHeader_crossOriginScenario() throws Exception {
-        MvcResult csrf = mvc.perform(get("/api/auth/csrf")).andReturn();
         mvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .cookie(csrf.getResponse().getCookie("XSRF-TOKEN"))
                         .content("{\"email\":\"a@example.com\",\"password\":\"password123\"}"))
                 .andExpect(status().isForbidden());
     }
 
     @Test
-    void loginAcceptsMatchingCsrfHeaderAndCookie_crossOriginScenario() throws Exception {
+    void loginAcceptsHeaderOnlyWithoutCookie_crossOriginScenario() throws Exception {
+        when(authService.login(anyString(), anyString(), anyString(), any()))
+                .thenReturn(new AuthService.Session(
+                        new AuthResponse("access-token", new UserResponse(1L, "Admin", "a@example.com", "ADMIN", true, false, null)),
+                        "refresh-token"));
+
+        MvcResult csrf = mvc.perform(get("/api/auth/csrf")).andReturn();
+        String token = com.jayway.jsonpath.JsonPath.read(csrf.getResponse().getContentAsString(), "$.token");
+
+        mvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .header("X-XSRF-TOKEN", token)
+                        .content("{\"email\":\"a@example.com\",\"password\":\"password123\"}"))
+                .andExpect(status().isOk());
+
+        verify(authService).login(anyString(), anyString(), anyString(), any());
+    }
+
+    @Test
+    void loginAcceptsMatchingCsrfHeaderAndCookie_sameOriginScenario() throws Exception {
         when(authService.login(anyString(), anyString(), anyString(), any()))
                 .thenReturn(new AuthService.Session(
                         new AuthResponse("access-token", new UserResponse(1L, "Admin", "a@example.com", "ADMIN", true, false, null)),
@@ -84,7 +104,5 @@ class AuthCsrfWebTest {
                         .cookie(csrf.getResponse().getCookie("XSRF-TOKEN"))
                         .content("{\"email\":\"a@example.com\",\"password\":\"password123\"}"))
                 .andExpect(status().isOk());
-
-        verify(authService).login(anyString(), anyString(), anyString(), any());
     }
 }
