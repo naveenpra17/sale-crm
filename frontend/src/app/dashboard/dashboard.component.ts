@@ -5,6 +5,7 @@ import { Dashboard } from '../models/models';
 import { AuthService } from '../core/auth/auth.service';
 import { interval, Subscription, timer } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
+import { apiErrorMessage } from '../core/api-error';
 import { LoadingStateComponent, ErrorStateComponent } from '../shared/state.components';
 
 @Component({
@@ -166,7 +167,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
       error: e => {
         if (!this.d) {
           this.loading = false;
-          this.error = e?.friendlyMessage || e?.error?.message || 'Unable to load dashboard.';
+          this.error = apiErrorMessage(e, 'Unable to load dashboard.');
         } else {
           this.refreshError = true;
         }

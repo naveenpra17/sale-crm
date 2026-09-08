@@ -12,7 +12,14 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import jakarta.persistence.criteria.JoinType;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
@@ -59,6 +66,19 @@ public class SaleService {
     public List<SaleResponse> export(String search, Long userId, LocalDate from, LocalDate to) {
         Sort sort = Sort.by(Sort.Direction.DESC, "saleDate", "createdAt");
         return sales.findAll(saleSearchSpec(search, userId, from, to), sort).stream().map(this::dto).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<SaleResponse> recentSales(int limit) {
+        Pageable page = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "saleDate", "createdAt"));
+        Specification<Sale> spec = (root, query, cb) -> {
+            root.fetch("user", JoinType.INNER);
+            if (query != null) {
+                query.distinct(true);
+            }
+            return cb.conjunction();
+        };
+        return sales.findAll(spec, page).map(this::dto).getContent();
     }
 
     @Transactional(readOnly = true)

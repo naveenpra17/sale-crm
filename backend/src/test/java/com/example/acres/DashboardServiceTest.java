@@ -1,6 +1,7 @@
 package com.example.acres;
 
 import com.example.acres.dto.DashboardDto;
+import com.example.acres.dto.LeaderboardDtos.LeaderboardResponse;
 import com.example.acres.entity.ProjectSettings;
 import com.example.acres.entity.Role;
 import com.example.acres.entity.User;
@@ -55,6 +56,7 @@ class DashboardServiceTest {
         when(projects.getSettings()).thenReturn(settings);
         when(sales.sumAcres()).thenReturn(new BigDecimal("52.0000"));
         when(sales.leaderboard()).thenReturn(List.of());
+        when(saleService.recentSales(10)).thenReturn(List.of());
         when(saleService.countForUser(me)).thenReturn(0L);
         DashboardDto dto = dashboardService.get(me);
         assertEquals(new BigDecimal("0.0000"), dto.remainingAcres());
@@ -68,6 +70,7 @@ class DashboardServiceTest {
         List<Object[]> rows = new ArrayList<>();
         rows.add(new Object[]{1L, "Ravi", new BigDecimal("8.0000")});
         when(sales.leaderboard()).thenReturn(rows);
+        when(saleService.recentSales(10)).thenReturn(List.of());
         when(saleService.countForUser(me)).thenReturn(2L);
         DashboardDto dto = dashboardService.get(me);
         assertEquals(new BigDecimal("0.8000"), dto.myPerformance().dailyRate());
@@ -78,9 +81,20 @@ class DashboardServiceTest {
         when(projects.getSettings()).thenReturn(settings);
         when(sales.sumAcres()).thenReturn(BigDecimal.ZERO);
         when(sales.leaderboard()).thenReturn(List.of());
+        when(saleService.recentSales(10)).thenReturn(List.of());
         when(saleService.countForUser(me)).thenReturn(0L);
         DashboardDto dto = dashboardService.get(me);
         assertNull(dto.projectedCompletionDate());
         assertEquals("BEHIND_TARGET", dto.status());
+    }
+
+    @Test
+    void leaderboardHandlesNumericAggregateTypes() {
+        when(sales.sumAcres()).thenReturn(new BigDecimal("10.0000"));
+        List<Object[]> rows = new ArrayList<>();
+        rows.add(new Object[]{1L, "Ravi", Double.valueOf(8.5)});
+        when(sales.leaderboard()).thenReturn(rows);
+        LeaderboardResponse response = dashboardService.leaderboard(me);
+        assertEquals(new BigDecimal("8.5"), response.entries().get(0).acresSold());
     }
 }

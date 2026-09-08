@@ -9,6 +9,7 @@ import com.example.acres.entity.User;
 import com.example.acres.repository.ProjectSettingsRepository;
 import com.example.acres.repository.SaleRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
@@ -28,6 +29,7 @@ public class DashboardService {
         this.saleService = saleService;
     }
 
+    @Transactional(readOnly = true)
     public DashboardDto get(User me) {
         ProjectSettings p = projects.getSettings();
         Instant now = Instant.now();
@@ -52,7 +54,7 @@ public class DashboardService {
                 ? BigDecimal.ZERO
                 : myAcres.divide(BigDecimal.valueOf(metrics.daysElapsed()), 4, RoundingMode.HALF_UP);
 
-        List<SaleResponse> recent = sales.findTop10ByOrderBySaleDateDescCreatedAtDesc().stream().map(saleService::dto).toList();
+        List<SaleResponse> recent = saleService.recentSales(10);
 
         return new DashboardDto(
                 p.getProjectName(),
@@ -76,6 +78,7 @@ public class DashboardService {
                 recent);
     }
 
+    @Transactional(readOnly = true)
     public LeaderboardResponse leaderboard(User me) {
         BigDecimal sold = sales.sumAcres().setScale(4, RoundingMode.HALF_UP);
         List<DashboardDto.LeaderboardItem> board = buildLeaderboard(sold);
@@ -97,12 +100,22 @@ public class DashboardService {
         for (Object[] row : rows) {
             Long uid = ((Number) row[0]).longValue();
             String name = (String) row[1];
-            BigDecimal acres = (BigDecimal) row[2];
+            BigDecimal acres = toBigDecimal(row[2]);
             BigDecimal pct = sold.signum() == 0
                     ? BigDecimal.ZERO
                     : acres.multiply(BigDecimal.valueOf(100)).divide(sold, 1, RoundingMode.HALF_UP);
             board.add(new DashboardDto.LeaderboardItem(rank++, uid, name, acres, pct));
         }
         return board;
+    }
+
+    private static BigDecimal toBigDecimal(Object value) {
+        if (value instanceof BigDecimal bd) {
+            return bd;
+        }
+        if (value instanceof Number n) {
+            return BigDecimal.valueOf(n.doubleValue());
+        }
+        return BigDecimal.ZERO;
     }
 }
