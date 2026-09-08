@@ -112,7 +112,7 @@ export class UsersComponent implements OnInit {
         this.loading = false;
       },
       error: e => {
-        this.error = e?.error?.message || 'Unable to load users.';
+        this.error = e?.friendlyMessage || e?.error?.message || 'Unable to load users.';
         this.loading = false;
       }
     });

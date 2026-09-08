@@ -9,6 +9,7 @@ import com.example.acres.exception.ForbiddenException;
 import com.example.acres.repository.UserRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,8 +33,24 @@ public class UserService {
         if (role != null && !role.isBlank()) {
             roleEnum = com.example.acres.util.RoleParser.parse(role);
         }
-        String q = search == null || search.isBlank() ? null : search.trim();
-        return repo.search(q, active, roleEnum, pageable);
+        String q = search == null || search.isBlank() ? null : search.trim().toLowerCase();
+        final Boolean activeFilter = active;
+        final Role roleFilter = roleEnum;
+
+        Specification<User> spec = Specification.where(null);
+        if (q != null) {
+            String pattern = "%" + q + "%";
+            spec = spec.and((root, query, cb) -> cb.or(
+                    cb.like(cb.lower(root.get("name")), pattern),
+                    cb.like(cb.lower(root.get("email")), pattern)));
+        }
+        if (activeFilter != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("active"), activeFilter));
+        }
+        if (roleFilter != null) {
+            spec = spec.and((root, query, cb) -> cb.equal(root.get("role"), roleFilter));
+        }
+        return repo.findAll(spec, pageable);
     }
 
     @Transactional
