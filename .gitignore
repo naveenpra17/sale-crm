@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+.angular/
+out-tsc/
+backend/target/
+.idea/
+.vscode/
+.DS_Store

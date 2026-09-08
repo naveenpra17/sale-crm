@@ -1,0 +1,1 @@
+package com.example.acres.dto; import jakarta.validation.constraints.*; public class PasswordDtos { public record ChangePasswordRequest(@NotBlank String currentPassword,@NotBlank @Size(min=8,max=128) String newPassword){} public record ResetPasswordRequest(@NotBlank @Size(min=8,max=128) String newPassword){} }

@@ -1,0 +1,4 @@
+package com.example.acres.entity;
+import jakarta.persistence.*; import lombok.*; import java.math.*; import java.time.*;
+@Entity @Table(name="project_settings") @Getter @Setter @NoArgsConstructor
+public class ProjectSettings { @Id @GeneratedValue(strategy=GenerationType.IDENTITY) private Long id; @Column(nullable=false) private String projectName; @Column(nullable=false,precision=12,scale=4) private BigDecimal totalAcres; @Column(nullable=false) private LocalDate startDate; @Column(nullable=false) private Instant deadline; @Column(nullable=false) private String timezone; @Column(nullable=false) private Instant createdAt; @Column(nullable=false) private Instant updatedAt; @Version private Long version; @PrePersist void pre(){createdAt=updatedAt=Instant.now();} @PreUpdate void upd(){updatedAt=Instant.now();} }

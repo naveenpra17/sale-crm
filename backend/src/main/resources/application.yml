@@ -1,0 +1,34 @@
+spring:
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/acres}
+    username: ${DATABASE_USERNAME:postgres}
+    password: ${DATABASE_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  jackson:
+    time-zone: ${APP_TIMEZONE:Asia/Kolkata}
+server:
+  port: ${PORT:8080}
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+app:
+  timezone: ${APP_TIMEZONE:Asia/Kolkata}
+  frontend-url: ${FRONTEND_URL:http://localhost:4200}
+  jwt-secret: ${JWT_SECRET:change-this-development-secret-to-a-long-random-value-at-least-32-bytes}
+  access-token-minutes: ${ACCESS_TOKEN_EXPIRATION:15}
+  refresh-token-days: ${REFRESH_TOKEN_EXPIRATION:30}
+  cookie-secure: ${COOKIE_SECURE:false}
+  cookie-same-site: ${COOKIE_SAME_SITE:Lax}
+  cookie-domain: ${COOKIE_DOMAIN:}
+springdoc:
+  api-docs:
+    enabled: ${SWAGGER_ENABLED:true}
+  swagger-ui:
+    enabled: ${SWAGGER_ENABLED:true}
