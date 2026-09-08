@@ -5,6 +5,7 @@ import { SalesService } from '../../services/sales.service';
 import { AdminService } from '../../services/admin.service';
 import { LoadingStateComponent, ErrorStateComponent } from '../../shared/state.components';
 import { DialogService } from '../../shared/dialog.service';
+import { apiErrorMessage } from '../../core/api-error';
 import { debounceTime, distinctUntilChanged, firstValueFrom } from 'rxjs';
 
 @Component({
@@ -134,7 +135,7 @@ export class AdminSalesComponent implements OnInit {
         this.loading = false;
       },
       error: e => {
-        this.error = e?.error?.message || 'Unable to load sales.';
+        this.error = apiErrorMessage(e, 'Unable to load sales.');
         this.loading = false;
       }
     });
@@ -178,7 +179,7 @@ export class AdminSalesComponent implements OnInit {
       this.editing = null;
       this.load();
     } catch (e: any) {
-      this.formError = e?.error?.message || 'Unable to save sale';
+      this.formError = apiErrorMessage(e, 'Unable to save sale');
     } finally {
       this.saving = false;
     }

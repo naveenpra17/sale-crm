@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { AdminService } from '../../services/admin.service';
 import { LoadingStateComponent, ErrorStateComponent, EmptyStateComponent } from '../../shared/state.components';
+import { apiErrorMessage } from '../../core/api-error';
 import { debounceTime, distinctUntilChanged } from 'rxjs';
 
 @Component({
@@ -106,7 +107,7 @@ export class AuditComponent implements OnInit {
         this.loading = false;
       },
       error: e => {
-        this.error = e?.error?.message || 'Unable to load audit logs.';
+        this.error = apiErrorMessage(e, 'Unable to load audit logs.');
         this.loading = false;
       }
     });

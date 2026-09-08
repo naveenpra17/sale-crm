@@ -5,6 +5,7 @@ import { AdminService } from '../../services/admin.service';
 import { DashboardService } from '../../services/dashboard.service';
 import { DialogService } from '../../shared/dialog.service';
 import { LoadingStateComponent, ErrorStateComponent } from '../../shared/state.components';
+import { apiErrorMessage } from '../../core/api-error';
 import { debounceTime, distinctUntilChanged, firstValueFrom } from 'rxjs';
 
 @Component({
@@ -70,7 +71,7 @@ export class SettingsComponent implements OnInit {
         this.loading = false;
       },
       error: e => {
-        this.error = e?.error?.message || 'Unable to load settings.';
+        this.error = apiErrorMessage(e, 'Unable to load settings.');
         this.loading = false;
       }
     });
@@ -99,7 +100,7 @@ export class SettingsComponent implements OnInit {
       this.originalTotal = nextTotal;
       await firstValueFrom(this.dashboard.get());
     } catch (e: any) {
-      this.saveError = e?.error?.message || 'Unable to save settings';
+      this.saveError = apiErrorMessage(e, 'Unable to save settings');
     } finally {
       this.saving = false;
     }

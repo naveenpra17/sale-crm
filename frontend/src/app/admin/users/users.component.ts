@@ -4,6 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AdminService } from '../../services/admin.service';
 import { LoadingStateComponent, ErrorStateComponent } from '../../shared/state.components';
 import { DialogService } from '../../shared/dialog.service';
+import { apiErrorMessage } from '../../core/api-error';
 import { debounceTime, distinctUntilChanged, firstValueFrom } from 'rxjs';
 
 @Component({
@@ -112,7 +113,7 @@ export class UsersComponent implements OnInit {
         this.loading = false;
       },
       error: e => {
-        this.error = e?.friendlyMessage || e?.error?.message || 'Unable to load users.';
+        this.error = apiErrorMessage(e, 'Unable to load users.');
         this.loading = false;
       }
     });
@@ -144,7 +145,7 @@ export class UsersComponent implements OnInit {
       this.editing = null;
       this.load();
     } catch (e: any) {
-      this.formError = e?.error?.message || 'Unable to save user';
+      this.formError = apiErrorMessage(e, 'Unable to save user');
     }
   }
 

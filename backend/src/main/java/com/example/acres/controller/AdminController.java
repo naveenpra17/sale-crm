@@ -10,7 +10,6 @@ import com.example.acres.dto.SaleDtos.SaleResponse;
 import com.example.acres.dto.UserDtos.UserRequest;
 import com.example.acres.dto.UserDtos.UserUpdateRequest;
 import com.example.acres.entity.User;
-import com.example.acres.repository.AuditLogRepository;
 import com.example.acres.service.AuditService;
 import com.example.acres.service.CurrentUserService;
 import com.example.acres.service.ProjectService;
@@ -48,14 +47,14 @@ public class AdminController {
     private final ProjectService project;
     private final UserService users;
     private final SaleService sales;
-    private final AuditLogRepository auditRepo;
+    private final AuditService auditService;
 
-    public AdminController(CurrentUserService current, ProjectService project, UserService users, SaleService sales, AuditLogRepository auditRepo) {
+    public AdminController(CurrentUserService current, ProjectService project, UserService users, SaleService sales, AuditService auditService) {
         this.current = current;
         this.project = project;
         this.users = users;
         this.sales = sales;
-        this.auditRepo = auditRepo;
+        this.auditService = auditService;
     }
 
     @GetMapping("/project")
@@ -153,10 +152,7 @@ public class AdminController {
             @RequestParam(required = false) Instant from,
             @RequestParam(required = false) Instant to,
             @PageableDefault(size = 20) Pageable pageable) {
-        return auditRepo.search(action, search, from, to, capped(pageable))
-                .map(a -> new AuditResponse(a.getId(), a.getUser() == null ? null : a.getUser().getId(),
-                        a.getUser() == null ? null : a.getUser().getName(), a.getAction(), a.getEntityType(),
-                        a.getEntityId(), a.getOldValue(), a.getNewValue(), a.getCreatedAt(), a.getIpAddress()));
+        return auditService.page(action, search, from, to, capped(pageable));
     }
 
     private Pageable capped(Pageable pageable) {
