@@ -78,6 +78,21 @@ export class AuthService {
     return this.userSubject.value;
   }
 
+  async changePassword(currentPassword: string, newPassword: string) {
+    if (!this.csrfTokenValue) {
+      await this.fetchCsrf();
+    }
+    const r = await firstValueFrom(
+      this.http.post<any>(
+        this.api('/auth/change-password'),
+        { currentPassword, newPassword },
+        { withCredentials: true }
+      )
+    );
+    this.tokenValue = r.accessToken;
+    this.userSubject.next(r.user);
+  }
+
   async refresh(): Promise<string> {
     if (!this.csrfTokenValue) {
       await this.fetchCsrf();

@@ -84,6 +84,21 @@ public class AuthService {
         return next;
     }
 
+    public User userFromRefreshCookie(String raw) {
+        if (raw == null) {
+            throw new UnauthorizedException("Session expired");
+        }
+        RefreshToken rt = tokens.findByTokenHash(hash(raw)).orElseThrow(() -> new UnauthorizedException("Session expired"));
+        if (rt.getRevokedAt() != null || rt.getExpiresAt().isBefore(Instant.now()) || !rt.getUser().isActive()) {
+            throw new UnauthorizedException("Session expired");
+        }
+        return rt.getUser();
+    }
+
+    public Session createSessionForUser(User u, String ip, String ua) {
+        return createSession(u, ip, ua, false);
+    }
+
     @Transactional
     public void logout(String raw, String ip) {
         if (raw != null) {

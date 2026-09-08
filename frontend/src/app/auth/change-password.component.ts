@@ -1,10 +1,8 @@
-import { Component, inject, OnInit } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../core/auth/auth.service';
-import { UserService } from '../services/user.service';
-import { firstValueFrom } from 'rxjs';
 
 @Component({
   standalone: true,
@@ -28,7 +26,6 @@ import { firstValueFrom } from 'rxjs';
 })
 export class ChangePasswordComponent {
   private fb = inject(FormBuilder);
-  private users = inject(UserService);
   private auth = inject(AuthService);
   private router = inject(Router);
   loading = false;
@@ -49,8 +46,7 @@ export class ChangePasswordComponent {
     this.loading = true;
     this.error = '';
     try {
-      await firstValueFrom(this.users.changePassword(currentPassword, newPassword, confirmPassword));
-      await this.auth.refresh();
+      await this.auth.changePassword(currentPassword, newPassword);
       await this.router.navigateByUrl('/dashboard');
     } catch (e: any) {
       this.error = e?.error?.message || 'Unable to change password';

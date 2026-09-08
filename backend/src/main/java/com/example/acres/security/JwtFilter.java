@@ -38,8 +38,8 @@ public class JwtFilter extends OncePerRequestFilter {
                 if (!entity.isActive()) {
                     throw new JwtException("Inactive user");
                 }
-                Long claimVersion = c.get("tv", Long.class);
-                if (claimVersion == null || claimVersion != entity.getTokenVersion()) {
+                long claimVersion = tokenVersion(c);
+                if (claimVersion != entity.getTokenVersion()) {
                     throw new JwtException("Token version mismatch");
                 }
                 var user = uds.loadUserByUsername(c.getSubject());
@@ -50,5 +50,13 @@ public class JwtFilter extends OncePerRequestFilter {
             }
         }
         chain.doFilter(req, res);
+    }
+
+    private static long tokenVersion(Claims c) {
+        Object tv = c.get("tv");
+        if (tv instanceof Number n) {
+            return n.longValue();
+        }
+        return -1L;
     }
 }

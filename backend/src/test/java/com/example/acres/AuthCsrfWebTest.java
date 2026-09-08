@@ -7,6 +7,7 @@ import com.example.acres.security.AuthCookieService;
 import com.example.acres.security.AuthCsrfFilter;
 import com.example.acres.security.CsrfTokenService;
 import com.example.acres.service.AuthService;
+import com.example.acres.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +36,9 @@ class AuthCsrfWebTest {
     @Mock
     AuthService authService;
 
+    @Mock
+    UserService userService;
+
     private MockMvc mvc;
     private CsrfTokenService csrfTokenService;
 
@@ -47,7 +51,7 @@ class AuthCsrfWebTest {
         ReflectionTestUtils.setField(cookies, "domain", "");
         ReflectionTestUtils.setField(cookies, "refreshTokenDays", 30L);
 
-        AuthController controller = new AuthController(authService, cookies, csrfTokenService);
+        AuthController controller = new AuthController(authService, userService, cookies, csrfTokenService);
         mvc = MockMvcBuilders.standaloneSetup(controller)
                 .addFilter(new AuthCsrfFilter(csrfTokenService))
                 .build();
