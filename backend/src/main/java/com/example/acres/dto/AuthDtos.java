@@ -11,6 +11,8 @@ public class AuthDtos {
 
     public record AuthResponse(String accessToken, UserResponse user) {}
 
+    public record CsrfResponse(String token) {}
+
     public record UserResponse(Long id, String name, String email, String role, boolean active,
                                boolean mustChangePassword, java.time.Instant lastLoginAt) {}
 }

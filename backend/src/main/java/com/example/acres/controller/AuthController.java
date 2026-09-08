@@ -1,6 +1,7 @@
 package com.example.acres.controller;
 
 import com.example.acres.dto.AuthDtos.AuthResponse;
+import com.example.acres.dto.AuthDtos.CsrfResponse;
 import com.example.acres.security.AuthCookieService;
 import com.example.acres.service.AuthService;
 import com.example.acres.dto.AuthDtos.LoginRequest;
@@ -30,11 +31,12 @@ public class AuthController {
     }
 
     @GetMapping("/csrf")
-    public ResponseEntity<Void> csrf(HttpServletResponse res) {
+    public ResponseEntity<CsrfResponse> csrf(HttpServletResponse res) {
         byte[] b = new byte[24];
         new SecureRandom().nextBytes(b);
-        res.addHeader(HttpHeaders.SET_COOKIE, cookies.buildCsrfCookie(Base64.getUrlEncoder().withoutPadding().encodeToString(b)));
-        return ResponseEntity.noContent().build();
+        String token = Base64.getUrlEncoder().withoutPadding().encodeToString(b);
+        res.addHeader(HttpHeaders.SET_COOKIE, cookies.buildCsrfCookie(token));
+        return ResponseEntity.ok(new CsrfResponse(token));
     }
 
     @PostMapping("/login")

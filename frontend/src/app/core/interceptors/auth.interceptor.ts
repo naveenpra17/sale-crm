@@ -6,11 +6,6 @@ import { AuthService } from '../auth/auth.service';
 
 let refresh$: Observable<string> | null = null;
 
-function csrf() {
-  const m = document.cookie.match(/(?:^|; )XSRF-TOKEN=([^;]+)/);
-  return m ? decodeURIComponent(m[1]) : null;
-}
-
 function requestId() {
   return crypto.randomUUID().replace(/-/g, '').slice(0, 8).toUpperCase();
 }
@@ -26,8 +21,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next): Observable<HttpEv
   if (token && !isAuth) {
     r = r.clone({ setHeaders: { Authorization: `Bearer ${token}`, 'X-Request-ID': r.headers.get('X-Request-ID')! } });
   }
-  const xsrf = csrf();
-  if (xsrf && isAuth && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method)) {
+  const xsrf = auth.csrfToken;
+  const isAuthMutation = isAuth && ['POST', 'PUT', 'DELETE', 'PATCH'].includes(req.method) && !req.url.includes('/auth/csrf');
+  if (xsrf && isAuthMutation) {
     r = r.clone({ setHeaders: { 'X-XSRF-TOKEN': xsrf, 'X-Request-ID': r.headers.get('X-Request-ID')! } });
   }
 
