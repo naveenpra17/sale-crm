@@ -29,23 +29,21 @@ PostgreSQL (Neon)
 - HTTP interceptor: single refresh on 401, request IDs, friendly 403/429/offline/5xx handling
 - CSRF double-submit (`XSRF-TOKEN` cookie + `X-XSRF-TOKEN` header) on auth mutations
 
-**Production cross-origin (Vercel → Render):** set `COOKIE_SAME_SITE=None`, `COOKIE_SECURE=true`, and `FRONTEND_URL` to your exact Vercel origin.
+**Production (Vercel → Render):** the Vercel `/api` proxy keeps API calls same-origin so the HttpOnly `ACRES_REFRESH` cookie is sent on refresh. Set `COOKIE_SECURE=true`, `FRONTEND_URL` to your Vercel origin, and `COOKIE_SAME_SITE=Lax` (or `None` if not using the proxy).
 
 ## Runtime API configuration (frontend)
 
-Production does **not** hard-code the backend URL. Before first deploy, set:
-
-`frontend/public/assets/config.json`:
+Production loads `/assets/config.json` before auth init. Recommended:
 
 ```json
 {
-  "apiBaseUrl": "https://your-actual-backend.onrender.com/api"
+  "apiBaseUrl": "/api"
 }
 ```
 
-The app loads this file on startup (before auth init). Development uses `environment.ts` (`http://localhost:8080/api`). See `config.prod.example.json` for a template.
+When `config.json` points at a cross-origin backend URL (e.g. `https://your-api.onrender.com/api`), the app automatically uses the same-origin `/api` proxy defined in `vercel.json` so refresh cookies work.
 
-You can change the backend URL on Vercel without rebuilding by updating `config.json` in the deployed static assets (or via a pre-build script that writes the file from an env var).
+Development uses `environment.ts` (`http://localhost:8080/api`). See `config.prod.example.json`.
 
 ## Local development
 
@@ -89,8 +87,8 @@ Open http://localhost:4200
 - Root directory: `frontend`
 - Build command: `npm ci && npm run build`
 - Output directory: `dist/acres-web`
-- **Before deploy:** set `public/assets/config.json` → `apiBaseUrl` to your Render API (e.g. `https://your-api.onrender.com/api`)
-- SPA rewrites configured in `vercel.json`
+- `vercel.json` proxies `/api/*` → your Render backend (update the destination URL if needed)
+- `config.json` may use `/api` or the Render URL; cross-origin URLs are auto-routed through `/api`
 
 ### Backend — Render
 
