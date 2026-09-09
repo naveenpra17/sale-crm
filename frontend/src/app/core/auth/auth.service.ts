@@ -1,5 +1,5 @@
-import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { Injectable, inject, isDevMode } from '@angular/core';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { BehaviorSubject, firstValueFrom } from 'rxjs';
 import { User } from '../../models/models';
 import { AppConfigService } from '../config/app-config.service';
@@ -33,18 +33,49 @@ export class AuthService {
     return r.token;
   }
 
-  async initialize() {
-    if (this.initialized) return;
+  async initialize(): Promise<void> {
+    if (this.initialized) {
+      return;
+    }
     this.initialized = true;
+
+    if (!this.config.isLoaded) {
+      const err = new Error('AppConfigService.load() must complete before AuthService.initialize()');
+      if (isDevMode()) {
+        console.error('[auth] Startup blocked: runtime config not loaded', err);
+      }
+      this.clearSession();
+      this.initializing = false;
+      throw err;
+    }
+
     try {
       await this.fetchCsrf();
-      const r = await firstValueFrom(this.http.post<any>(this.api('/auth/refresh'), {}, { withCredentials: true }));
+      const r = await firstValueFrom(
+        this.http.post<{ accessToken: string; user: User }>(
+          this.api('/auth/refresh'),
+          {},
+          { withCredentials: true }
+        )
+      );
       this.tokenValue = r.accessToken;
       this.userSubject.next(r.user);
-    } catch {
-      this.tokenValue = null;
-      this.csrfTokenValue = null;
-      this.userSubject.next(null);
+      if (isDevMode()) {
+        console.debug('[auth] Session restored from refresh cookie');
+      }
+    } catch (err) {
+      if (this.isMissingRefreshSession(err)) {
+        if (isDevMode()) {
+          console.debug('[auth] No active refresh session on startup');
+        }
+        this.clearSession();
+      } else {
+        if (isDevMode()) {
+          console.error('[auth] Startup initialization failed', err);
+        }
+        this.clearSession();
+        throw err;
+      }
     } finally {
       this.initializing = false;
     }
@@ -52,7 +83,13 @@ export class AuthService {
 
   async login(email: string, password: string) {
     await this.fetchCsrf();
-    const r = await firstValueFrom(this.http.post<any>(this.api('/auth/login'), { email, password }, { withCredentials: true }));
+    const r = await firstValueFrom(
+      this.http.post<{ accessToken: string; user: User }>(
+        this.api('/auth/login'),
+        { email, password },
+        { withCredentials: true }
+      )
+    );
     this.tokenValue = r.accessToken;
     this.userSubject.next(r.user);
   }
@@ -64,9 +101,7 @@ export class AuthService {
       }
       await firstValueFrom(this.http.post(this.api('/auth/logout'), {}, { withCredentials: true }));
     } finally {
-      this.tokenValue = null;
-      this.csrfTokenValue = null;
-      this.userSubject.next(null);
+      this.clearSession();
     }
   }
 
@@ -83,7 +118,7 @@ export class AuthService {
       await this.fetchCsrf();
     }
     const r = await firstValueFrom(
-      this.http.post<any>(
+      this.http.post<{ accessToken: string; user: User }>(
         this.api('/auth/change-password'),
         { currentPassword, newPassword },
         { withCredentials: true }
@@ -98,11 +133,27 @@ export class AuthService {
       await this.fetchCsrf();
     }
     const payload = await AuthCoordinator.coordinateRefresh(async () => {
-      const r = await firstValueFrom(this.http.post<any>(this.api('/auth/refresh'), {}, { withCredentials: true }));
-      return { accessToken: r.accessToken as string, user: r.user as User };
+      const r = await firstValueFrom(
+        this.http.post<{ accessToken: string; user: User }>(
+          this.api('/auth/refresh'),
+          {},
+          { withCredentials: true }
+        )
+      );
+      return { accessToken: r.accessToken, user: r.user };
     });
     this.tokenValue = payload.accessToken;
     this.userSubject.next(payload.user);
     return payload.accessToken;
+  }
+
+  private clearSession(): void {
+    this.tokenValue = null;
+    this.csrfTokenValue = null;
+    this.userSubject.next(null);
+  }
+
+  private isMissingRefreshSession(err: unknown): boolean {
+    return err instanceof HttpErrorResponse && (err.status === 401 || err.status === 403);
   }
 }
